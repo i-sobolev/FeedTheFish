@@ -1,5 +1,7 @@
 using DG.Tweening;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace FeedTheFish
@@ -7,6 +9,8 @@ namespace FeedTheFish
     public class ItemsMerger : MonoBehaviour
     {
         [SerializeField] private float _minMergeDistance;
+        [Space]
+        [SerializeField] private List<MergingItem> _itemsTemplates;
 
         private MergingItem PickedItem { get; set; }
         private MergingItem PotentialMergingItem { get; set; }
@@ -15,6 +19,18 @@ namespace FeedTheFish
         {
             MergingItem.SomeItemPicked += OnSomeItemPicked;
             MergingItem.SomeItemDropped += OnSomeItemDropped;
+
+            InitializeItems();
+        }
+
+        private void InitializeItems()
+        {
+            int counter = 0;
+
+            foreach (var item in _itemsTemplates)
+            {
+                item.Type = counter++;
+            }
         }
 
         private void OnSomeItemDropped(MergingItem item)
@@ -34,17 +50,18 @@ namespace FeedTheFish
         {
             PickedItem = item;
 
-            StartCoroutine(FindMerginItem());
+            StartCoroutine(FindMergingItem());
         }
 
         private void MergeItems()
         {
             var newItemTargetPosition = (PotentialMergingItem.transform.position + PickedItem.transform.position) / 2;
 
-            PickedItem.PlayMergeAnimation(newItemTargetPosition);
-            PotentialMergingItem.PlayMergeAnimation(newItemTargetPosition);
+            PickedItem.PlayMergeAnimationAndDestroy(newItemTargetPosition);
+            PotentialMergingItem.PlayMergeAnimationAndDestroy(newItemTargetPosition);
 
-            var newItem = Instantiate(PickedItem, newItemTargetPosition, Quaternion.identity);
+            var newItem = Instantiate(GetNextMergingItemType(PickedItem), newItemTargetPosition, Quaternion.identity);
+            newItem.Type = PickedItem.Type + 1;
 
             DOTween.Sequence()
                 .Append(newItem.transform.DOScale(1, 0.25f).From(0).SetEase(Ease.OutBack))
@@ -52,7 +69,15 @@ namespace FeedTheFish
                 .SetDelay(0.15f);
         }
 
-        private IEnumerator FindMerginItem()
+        private MergingItem GetNextMergingItemType(MergingItem mergingItem)
+        {
+            if (_itemsTemplates.Count < mergingItem.Type + 1)
+                return null;
+
+            return _itemsTemplates[mergingItem.Type + 1];
+        }
+
+        private IEnumerator FindMergingItem()
         {
             var allItems = FindObjectsOfType<MergingItem>();
 
@@ -81,6 +106,12 @@ namespace FeedTheFish
                 foreach (var item in allItems)
                 {
                     if (item == PickedItem)
+                        continue;
+
+                    if (item.Type != PickedItem.Type)
+                        continue;
+
+                    if (item.Merging)
                         continue;
 
                     var distance = Vector3.Distance(item.transform.position, PickedItem.transform.position);

@@ -1,5 +1,6 @@
 using DG.Tweening;
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -15,6 +16,9 @@ namespace FeedTheFish
 
         private Tween _highlightTween;
         private bool _lastHighlightedState = false;
+
+        public int Type { get; set; }
+        public bool Merging { get; set; } = false;
 
         private void Awake()
         {
@@ -55,13 +59,17 @@ namespace FeedTheFish
             }
         }
 
-        public Tween PlayMergeAnimation(Vector3 targetPosition)
+        public Tween PlayMergeAnimationAndDestroy(Vector3 targetPosition)
         {
+            Merging = true;
             _movableItem.SetPhysics(false);
+
+            Destroy(GetComponent<Collider>());
 
             return DOTween.Sequence()
                 .Append(transform.DOMove(targetPosition, 0.3f).SetEase(Ease.InOutBack))
-                .Join(transform.DOScale(0, 0.3f).SetEase(Ease.InOutBack));
+                .Join(transform.DOScale(0, 0.3f).SetEase(Ease.InOutBack))
+                .OnComplete(() => Destroy(gameObject));
         }
     }
 }
