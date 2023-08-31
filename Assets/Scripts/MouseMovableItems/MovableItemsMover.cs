@@ -35,7 +35,7 @@ namespace FeedTheFish
                 _pickedItem.transform.position = Vector3.Lerp(_pickedItem.transform.position, targetPosition, 0.1f);
             }
 
-            if (Input.GetMouseButtonUp(0)) 
+            if (Input.GetMouseButtonUp(0))
             {
                 if (_pickedItem == null)
                     return;

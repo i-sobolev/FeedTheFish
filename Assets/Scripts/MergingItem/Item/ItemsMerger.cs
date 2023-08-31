@@ -10,10 +10,13 @@ namespace FeedTheFish
     {
         [SerializeField] private float _minMergeDistance;
         [Space]
+        [SerializeField] private ItemRecycler _itemRecycler;
         [SerializeField] private List<MergingItem> _itemsTemplates;
 
-        private MergingItem PickedItem { get; set; }
-        private MergingItem PotentialMergingItem { get; set; }
+        private MergingItem _pickedItem;
+        private MergingItem _potentialMergingItem;
+
+        private bool CanRecycle => Vector3.Distance(_pickedItem.transform.position, _itemRecycler.transform.position) < _minMergeDistance * 2;
 
         private void Awake()
         {
@@ -37,31 +40,36 @@ namespace FeedTheFish
         {
             StopAllCoroutines();
 
-            if (PotentialMergingItem != null)
+            if (_potentialMergingItem != null)
             {
                 MergeItems();
             }
 
-            PickedItem = null;
-            PotentialMergingItem = null;
+            if (CanRecycle)
+            {
+                _itemRecycler.Recycle(item);
+            }
+
+            _pickedItem = null;
+            _potentialMergingItem = null;
         }
 
         private void OnSomeItemPicked(MergingItem item)
         {
-            PickedItem = item;
+            _pickedItem = item;
 
             StartCoroutine(FindMergingItem());
         }
 
         private void MergeItems()
         {
-            var newItemTargetPosition = (PotentialMergingItem.transform.position + PickedItem.transform.position) / 2;
+            var newItemTargetPosition = (_potentialMergingItem.transform.position + _pickedItem.transform.position) / 2;
 
-            PickedItem.PlayMergeAnimationAndDestroy(newItemTargetPosition);
-            PotentialMergingItem.PlayMergeAnimationAndDestroy(newItemTargetPosition);
+            _pickedItem.PlayMergeAnimationAndDestroy(newItemTargetPosition);
+            _potentialMergingItem.PlayMergeAnimationAndDestroy(newItemTargetPosition);
 
-            var newItem = Instantiate(GetNextMergingItemType(PickedItem), newItemTargetPosition, Quaternion.identity);
-            newItem.Type = PickedItem.Type + 1;
+            var newItem = Instantiate(GetNextMergingItemType(_pickedItem), newItemTargetPosition, Quaternion.identity);
+            newItem.Type = _pickedItem.Type + 1;
 
             DOTween.Sequence()
                 .Append(newItem.transform.DOScale(1, 0.25f).From(0).SetEase(Ease.OutBack))
@@ -83,15 +91,27 @@ namespace FeedTheFish
 
             while (true)
             {
-                var closestItem = FindClosestItem();
+                var canRecycle = CanRecycle;
 
-                if (closestItem != PotentialMergingItem)
+                _itemRecycler.SetReady(canRecycle);
+
+                if (CanRecycle)
                 {
-                    PotentialMergingItem?.SetHighlighted(false);
+                    _potentialMergingItem?.SetHighlighted(false);
+                    _potentialMergingItem = null;
+                }
+                else
+                {
+                    var closestItem = FindClosestItem();
 
-                    PotentialMergingItem = closestItem;
+                    if (closestItem != _potentialMergingItem)
+                    {
+                        _potentialMergingItem?.SetHighlighted(false);
 
-                    PotentialMergingItem?.SetHighlighted(true);
+                        _potentialMergingItem = closestItem;
+
+                        _potentialMergingItem?.SetHighlighted(true);
+                    }
                 }
 
                 yield return new WaitForSeconds(0.1f);
@@ -105,16 +125,16 @@ namespace FeedTheFish
 
                 foreach (var item in allItems)
                 {
-                    if (item == PickedItem)
+                    if (item == _pickedItem)
                         continue;
 
-                    if (item.Type != PickedItem.Type)
+                    if (item.Type != _pickedItem.Type)
                         continue;
 
                     if (item.Merging)
                         continue;
 
-                    var distance = Vector3.Distance(item.transform.position, PickedItem.transform.position);
+                    var distance = Vector3.Distance(item.transform.position, _pickedItem.transform.position);
 
                     if (distance < _minMergeDistance && distance < minDistance)
                     {
@@ -129,9 +149,9 @@ namespace FeedTheFish
 
         private void OnDrawGizmos()
         {
-            if (PotentialMergingItem != null && PickedItem != null)
+            if (_potentialMergingItem != null && _pickedItem != null)
             {
-                Debug.DrawLine(PickedItem.transform.position, PotentialMergingItem.transform.position, Color.yellow);
+                Debug.DrawLine(_pickedItem.transform.position, _potentialMergingItem.transform.position, Color.yellow);
             }
         }
     }
