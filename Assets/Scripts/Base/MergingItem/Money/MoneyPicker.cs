@@ -21,7 +21,10 @@ namespace FeedTheFish
             hitInfo.collider.TryGetComponent<Money>(out var money);
 
             if (money != null)
+            {
+                PlayerMoney.Instance.Amount += money.Amount;
                 money.OnPick();
+            }
         }
     }
 }

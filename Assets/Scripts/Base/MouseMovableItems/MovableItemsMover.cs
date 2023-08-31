@@ -24,7 +24,6 @@ namespace FeedTheFish
                     _pickedItem = item;
 
                     _pickedItem.SetPicked(true);
-
                 }
             }
 

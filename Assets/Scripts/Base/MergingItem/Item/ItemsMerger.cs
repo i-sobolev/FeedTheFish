@@ -1,5 +1,4 @@
 using DG.Tweening;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,7 +10,6 @@ namespace FeedTheFish
         [SerializeField] private float _minMergeDistance;
         [Space]
         [SerializeField] private ItemRecycler _itemRecycler;
-        [SerializeField] private List<MergingItem> _itemsTemplates;
 
         private MergingItem _pickedItem;
         private MergingItem _potentialMergingItem;
@@ -22,19 +20,8 @@ namespace FeedTheFish
         {
             MergingItem.SomeItemPicked += OnSomeItemPicked;
             MergingItem.SomeItemDropped += OnSomeItemDropped;
-
-            InitializeItems();
         }
 
-        private void InitializeItems()
-        {
-            int counter = 0;
-
-            foreach (var item in _itemsTemplates)
-            {
-                item.Type = counter++;
-            }
-        }
 
         private void OnSomeItemDropped(MergingItem item)
         {
@@ -68,21 +55,13 @@ namespace FeedTheFish
             _pickedItem.PlayMergeAnimationAndDestroy(newItemTargetPosition);
             _potentialMergingItem.PlayMergeAnimationAndDestroy(newItemTargetPosition);
 
-            var newItem = Instantiate(GetNextMergingItemType(_pickedItem), newItemTargetPosition, Quaternion.identity);
+            var newItem = Instantiate(MergingItemsSpawner.Instance.GetNextMergingItemType(_pickedItem), newItemTargetPosition, Quaternion.identity);
             newItem.Type = _pickedItem.Type + 1;
 
             DOTween.Sequence()
                 .Append(newItem.transform.DOScale(1, 0.25f).From(0).SetEase(Ease.OutBack))
                 .Join(newItem.transform.DOJump(newItem.transform.position, 0.5f, 1, 0.3f))
                 .SetDelay(0.15f);
-        }
-
-        private MergingItem GetNextMergingItemType(MergingItem mergingItem)
-        {
-            if (_itemsTemplates.Count < mergingItem.Type + 1)
-                return null;
-
-            return _itemsTemplates[mergingItem.Type + 1];
         }
 
         private IEnumerator FindMergingItem()

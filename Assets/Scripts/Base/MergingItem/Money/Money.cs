@@ -10,12 +10,14 @@ namespace FeedTheFish
 
         public Rigidbody Rigidbody => _rigidbody;
 
+        public int Amount { get; set; } = 10;
+
         public void OnPick()
         {
             _collider.enabled = false;
             _rigidbody.isKinematic = true;
 
-            transform.DOScale(0, 0.25f).SetEase(Ease.InBack);
+            transform.DOScale(0, 0.15f).SetEase(Ease.InBack);
         }
     }
 }
